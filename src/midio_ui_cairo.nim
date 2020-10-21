@@ -50,7 +50,7 @@ proc measureText(ctx: RenderContext, text: string): tuple[width: float, height: 
     text = text
     extents: TTextExtents
   ctx.surface.textExtents(text, addr extents)
-  (extents.width, extents.height)
+  (extents.width * scale, extents.height * scale)
 
 proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: TextInfo): void =
   # ctx.fillStyle = colorInfo.map(x => x.fill.get("red")).get("brown")
