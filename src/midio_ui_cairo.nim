@@ -30,17 +30,17 @@ type
 proc renderSegment(ctx: RenderContext, segment: PathSegment): void =
   case segment.kind
   of PathSegmentKind.MoveTo:
-    ctx.surface.moveTo(segment.to.x * scale, segment.to.y * scale)
+    ctx.surface.moveTo(segment.to.x, segment.to.y )
   of PathSegmentKind.LineTo:
-    ctx.surface.lineTo(segment.to.x * scale, segment.to.y * scale)
+    ctx.surface.lineTo(segment.to.x, segment.to.y )
   of PathSegmentKind.QuadraticCurveTo:
     ctx.surface.curveTo(
-      segment.controlPoint.x * scale,
-      segment.controlPoint.y * scale,
-      segment.point.x * scale,
-      segment.point.y * scale,
-      segment.point.x * scale,
-      segment.point.y * scale
+      segment.controlPoint.x,
+      segment.controlPoint.y,
+      segment.point.x,
+      segment.point.y,
+      segment.point.x,
+      segment.point.y
     )
   of PathSegmentKind.Close:
     ctx.surface.closePath()
@@ -58,29 +58,28 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   # ctx.textBaseline = textInfo.textBaseline
   # ctx.fillText(textInfo.text, textInfo.pos.x, textInfo.pos.y)
   ctx.surface.selectFontFace(textInfo.font, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
-  ctx.surface.setFontSize(textInfo.fontSize * scale)
+  ctx.surface.setFontSize(textInfo.fontSize )
   let textColor = colorInfo.map(x => x.fill.get("red")).get("brown")
   let c = parseColor(textColor).extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
   let textSize = ctx.measureText(textInfo.text)
-  ctx.surface.moveTo(textInfo.pos.x * scale, textInfo.pos.y * scale + textSize.height * scale / 2.0)
+  ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
 proc renderCircle(ctx: RenderContext, center: Vec2[float], radius: float): void =
   #ctx.surface.arc(center.x, center.y, radius, 0.0, TAU)
   discard
 
-proc renderEllipse(info: EllipseInfo): void =
-  # ctx.beginPath()
-  # let
-  #   c = info.center
-  #   r = info.radius
-  # ctx.ellipse(c.x, c.y, r.x, r.y, info.rotation, info.startAngle, info.endAngle)
-  discard
+proc renderEllipse(ctx: RenderContext, info: EllipseInfo): void =
+  ctx.surface.newPath()
+  let
+    c = info.center
+    r = info.radius
+  ctx.surface.arc(c.x, c.y, r.x, info.startAngle, info.endAngle)
 
 proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo: Option[StrokeInfo]): void =
   if strokeInfo.isSome():
-    ctx.surface.setLineWidth(strokeInfo.get().width * scale)
+    ctx.surface.setLineWidth(strokeInfo.get().width )
   if colorInfo.isSome():
     let ci = colorInfo.get()
     if ci.fill.isSome():
@@ -109,17 +108,15 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
     # ctx.beginPath()
     # renderCircle(ctx, info.center, info.radius)
     # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
-  of PrimitiveKind.Ellipse:discard
-    # let info = p.ellipseInfo
-    # ctx.beginPath()
-    # renderEllipse(ctx, info)
-    # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
+  of PrimitiveKind.Ellipse:
+    renderEllipse(ctx, p.ellipseInfo)
+    #fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Rectangle:
     # if p.strokeInfo.isSome():
     #   ctx.lineWidth = p.strokeInfo.get().width
     if p.colorInfo.isSome():
       let b = p.rectangleInfo.bounds
-      ctx.surface.rectangle(b.x * scale, b.y * scale, b.width * scale, b.height * scale)
+      ctx.surface.rectangle(b.x, b.y, b.width, b.height )
       ctx.surface.fill()
       # let ci = p.colorInfo.get()
       # if ci.fill.isSome():
@@ -134,7 +131,7 @@ proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[flo
   if primitive.clipToBounds:
     ctx.surface.newPath()
     let cb = primitive.bounds
-    ctx.surface.rectangle(offset.x * scale, offset.y * scale, cb.size.x * scale, cb.size.y * scale)
+    ctx.surface.rectangle(offset.x, offset.y, cb.size.x, cb.size.y )
     ctx.surface.clip()
   ctx.renderPrimitive(primitive)
   for p in primitive.children:
@@ -159,6 +156,8 @@ proc startApp*(renderFunc: () -> Element): void =
   let ctx = RenderContext(
     surface: surface.create()
   )
+
+  ctx.surface.scale(scale, scale)
   while true:
     while pollEvent(evt):
       if evt.kind == QuitEvent:
@@ -178,10 +177,10 @@ proc startApp*(renderFunc: () -> Element): void =
           w = windowEvent.data1
           h = windowEvent.data2
           window.setSize(w, h)
-          ctx.surface = surface.create()
           surface = imageSurfaceCreate(FORMAT_ARGB32, w, h)
           mainSurface = createRGBSurface(0, cint w, cint h, 32, rmask, gmask, bmask, amask)
           ctx.surface = surface.create()
+          ctx.surface.scale(scale, scale)
 
           context.dispatchWindowSizeChanged(vec2(float(w), float(h)))
       elif evt.kind == KEY_DOWN:
