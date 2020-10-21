@@ -66,9 +66,8 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
-proc renderCircle(ctx: RenderContext, center: Vec2[float], radius: float): void =
-  #ctx.surface.arc(center.x, center.y, radius, 0.0, TAU)
-  discard
+proc renderCircle(ctx: RenderContext, info: CircleInfo): void =
+  ctx.surface.arc(info.center.x + info.radius, info.center.y + info.radius, info.radius, 0.0, TAU)
 
 proc renderEllipse(ctx: RenderContext, info: EllipseInfo): void =
   ctx.surface.newPath()
@@ -103,14 +102,12 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
     ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Text:
     ctx.renderText(p.colorInfo, p.textInfo)
-  of PrimitiveKind.Circle:discard
-    # let info = p.circleInfo
-    # ctx.beginPath()
-    # renderCircle(ctx, info.center, info.radius)
-    # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
+  of PrimitiveKind.Circle:
+    renderCircle(ctx, p.circleInfo)
+    ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Ellipse:
     renderEllipse(ctx, p.ellipseInfo)
-    #fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
+    ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Rectangle:
     # if p.strokeInfo.isSome():
     #   ctx.lineWidth = p.strokeInfo.get().width
