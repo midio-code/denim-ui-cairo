@@ -129,10 +129,17 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
       #   ctx.strokeStyle = ci.stroke.get()
       #   ctx.strokeRect(b.left, b.top, b.width, b.height)
 
-proc renderPrimitives(ctx: RenderContext, primitive: Primitive): void =
+proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[float]): void =
+  ctx.surface.save()
+  if primitive.clipToBounds:
+    ctx.surface.newPath()
+    let cb = primitive.bounds
+    ctx.surface.rectangle(offset.x * scale, offset.y * scale, cb.size.x * scale, cb.size.y * scale)
+    ctx.surface.clip()
   ctx.renderPrimitive(primitive)
   for p in primitive.children:
-    ctx.renderPrimitives(p)
+    ctx.renderPrimitives(p, offset + p.bounds.pos)
+  ctx.surface.restore()
 
 var evt = sdl2.defaultEvent
 
@@ -199,7 +206,7 @@ proc startApp*(renderFunc: () -> Element): void =
     ctx.surface.rectangle(0, 0, float(w), float(h))
     ctx.surface.fill()
     if primitive.isSome():
-      ctx.renderPrimitives(primitive.get())
+      ctx.renderPrimitives(primitive.get(), vec2(0.0))
 
     var dataPtr = surface.getData()
     mainSurface.pixels = dataPtr
