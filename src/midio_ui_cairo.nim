@@ -30,15 +30,15 @@ type
 proc renderSegment(ctx: RenderContext, segment: PathSegment): void =
   case segment.kind
   of PathSegmentKind.MoveTo:
-    ctx.surface.moveTo(segment.to.x, segment.to.y )
+    ctx.surface.moveTo(segment.to.x, segment.to.y)
   of PathSegmentKind.LineTo:
-    ctx.surface.lineTo(segment.to.x, segment.to.y )
+    ctx.surface.lineTo(segment.to.x, segment.to.y)
   of PathSegmentKind.QuadraticCurveTo:
     ctx.surface.curveTo(
       segment.controlPoint.x,
       segment.controlPoint.y,
-      segment.point.x,
-      segment.point.y,
+      segment.controlPoint.x,
+      segment.controlPoint.y,
       segment.point.x,
       segment.point.y
     )
@@ -125,11 +125,29 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
 
 proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[float]): void =
   ctx.surface.save()
+  if primitive.transform.isSome():
+    let transform = primitive.transform.get()
+    let wp = offset
+    let size = primitive.bounds.size
+    let xPos = wp.x + size.x / 2.0
+    let yPos = wp.y + size.y / 2.0
+    ctx.surface.translate(xPos, yPos)
+    ctx.surface.rotate(transform.rotation)
+    ctx.surface.translate(-xPos, -yPos)
+    ctx.surface.translate(
+      transform.translation.x,
+      transform.translation.y
+    )
+    ctx.surface.scale(
+      transform.scale.x,
+      transform.scale.y
+    )
   if primitive.clipToBounds:
     ctx.surface.newPath()
     let cb = primitive.bounds
     ctx.surface.rectangle(offset.x, offset.y, cb.size.x, cb.size.y )
     ctx.surface.clip()
+
   ctx.renderPrimitive(primitive)
   for p in primitive.children:
     ctx.renderPrimitives(p, offset + p.bounds.pos)
