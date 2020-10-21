@@ -92,42 +92,47 @@ proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo:
       ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
       ctx.surface.stroke()
 
-proc renderPrimitives(ctx: RenderContext, primitives: seq[Primitive]): void =
-  for p in primitives:
-    case p.kind
-    of PrimitiveKind.Path:
-      ctx.surface.newPath()
-      for segment in p.segments:
-        ctx.renderSegment(segment)
-      #ctx.surface.stroke()
-      ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
-    of PrimitiveKind.Text:
-      ctx.renderText(p.colorInfo, p.textInfo)
-    of PrimitiveKind.Circle:discard
-      # let info = p.circleInfo
-      # ctx.beginPath()
-      # renderCircle(ctx, info.center, info.radius)
-      # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
-    of PrimitiveKind.Ellipse:discard
-      # let info = p.ellipseInfo
-      # ctx.beginPath()
-      # renderEllipse(ctx, info)
-      # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
-    of PrimitiveKind.Rectangle:
-      # if p.strokeInfo.isSome():
-      #   ctx.lineWidth = p.strokeInfo.get().width
-      if p.colorInfo.isSome():
-        let b = p.rectangleInfo.bounds
-        ctx.surface.rectangle(b.x * scale, b.y * scale, b.width * scale, b.height * scale)
-        ctx.surface.fill()
-        # let ci = p.colorInfo.get()
-        # if ci.fill.isSome():
-        #   ctx.fillStyle = ci.fill.get()
-        #   ctx.fillRect(b.left, b.top, b.width, b.height)
-        # if ci.stroke.isSome():
-        #   ctx.strokeStyle = ci.stroke.get()
-        #   ctx.strokeRect(b.left, b.top, b.width, b.height)
+proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
+  case p.kind
+  of PrimitiveKind.Container:
+    discard
+  of PrimitiveKind.Path:
+    ctx.surface.newPath()
+    for segment in p.segments:
+      ctx.renderSegment(segment)
+    #ctx.surface.stroke()
+    ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
+  of PrimitiveKind.Text:
+    ctx.renderText(p.colorInfo, p.textInfo)
+  of PrimitiveKind.Circle:discard
+    # let info = p.circleInfo
+    # ctx.beginPath()
+    # renderCircle(ctx, info.center, info.radius)
+    # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
+  of PrimitiveKind.Ellipse:discard
+    # let info = p.ellipseInfo
+    # ctx.beginPath()
+    # renderEllipse(ctx, info)
+    # fillAndStroke(ctx, p.colorInfo, p.strokeInfo)
+  of PrimitiveKind.Rectangle:
+    # if p.strokeInfo.isSome():
+    #   ctx.lineWidth = p.strokeInfo.get().width
+    if p.colorInfo.isSome():
+      let b = p.rectangleInfo.bounds
+      ctx.surface.rectangle(b.x * scale, b.y * scale, b.width * scale, b.height * scale)
+      ctx.surface.fill()
+      # let ci = p.colorInfo.get()
+      # if ci.fill.isSome():
+      #   ctx.fillStyle = ci.fill.get()
+      #   ctx.fillRect(b.left, b.top, b.width, b.height)
+      # if ci.stroke.isSome():
+      #   ctx.strokeStyle = ci.stroke.get()
+      #   ctx.strokeRect(b.left, b.top, b.width, b.height)
 
+proc renderPrimitives(ctx: RenderContext, primitive: Primitive): void =
+  ctx.renderPrimitive(primitive)
+  for p in primitive.children:
+    ctx.renderPrimitives(p)
 
 var evt = sdl2.defaultEvent
 
@@ -185,7 +190,7 @@ proc startApp*(renderFunc: () -> Element): void =
     let dt = float(now - frameTime)
     frameTime = now
 
-    let primitives = midio_ui.render(context, dt)
+    let primitive = midio_ui.render(context, dt)
 
     #echo "SURFACE: ", surface.w, ",", surface.h
 
@@ -193,7 +198,8 @@ proc startApp*(renderFunc: () -> Element): void =
     ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
     ctx.surface.rectangle(0, 0, float(w), float(h))
     ctx.surface.fill()
-    ctx.renderPrimitives(primitives)
+    if primitive.isSome():
+      ctx.renderPrimitives(primitive.get())
 
     var dataPtr = surface.getData()
     mainSurface.pixels = dataPtr
