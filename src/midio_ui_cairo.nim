@@ -33,14 +33,23 @@ proc renderSegment(ctx: RenderContext, segment: PathSegment): void =
     ctx.surface.moveTo(segment.to.x, segment.to.y)
   of PathSegmentKind.LineTo:
     ctx.surface.lineTo(segment.to.x, segment.to.y)
+  of PathSegmentKind.BezierCurveTo:
+    ctx.surface.curveTo(
+      segment.bezierInfo.controlPoint1.x,
+      segment.bezierInfo.controlPoint1.y,
+      segment.bezierInfo.controlPoint2.x,
+      segment.bezierInfo.controlPoint2.y,
+      segment.bezierInfo.point.x,
+      segment.bezierInfo.point.y
+    )
   of PathSegmentKind.QuadraticCurveTo:
     ctx.surface.curveTo(
-      segment.controlPoint.x,
-      segment.controlPoint.y,
-      segment.controlPoint.x,
-      segment.controlPoint.y,
-      segment.point.x,
-      segment.point.y
+      segment.quadraticInfo.controlPoint.x,
+      segment.quadraticInfo.controlPoint.y,
+      segment.quadraticInfo.controlPoint.x,
+      segment.quadraticInfo.controlPoint.y,
+      segment.quadraticInfo.point.x,
+      segment.quadraticInfo.point.y
     )
   of PathSegmentKind.Close:
     ctx.surface.closePath()
@@ -63,18 +72,17 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   let c = parseColor(textColor).extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
   let textSize = ctx.measureText(textInfo.text)
-  ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
+  #ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
 proc renderCircle(ctx: RenderContext, info: CircleInfo): void =
-  ctx.surface.arc(info.center.x + info.radius, info.center.y + info.radius, info.radius, 0.0, TAU)
+  ctx.surface.arc(info.radius, info.radius, info.radius, 0.0, TAU)
 
 proc renderEllipse(ctx: RenderContext, info: EllipseInfo): void =
   ctx.surface.newPath()
   let
-    c = info.center
     r = info.radius
-  ctx.surface.arc(c.x, c.y, r.x, info.startAngle, info.endAngle)
+  ctx.surface.arc(0.0, 0.0, r.x, info.startAngle, info.endAngle)
 
 proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo: Option[StrokeInfo]): void =
   if strokeInfo.isSome():
@@ -125,6 +133,7 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
 
 proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[float]): void =
   ctx.surface.save()
+  ctx.surface.translate(primitive.bounds.x, primitive.bounds.y)
   if primitive.transform.isSome():
     let transform = primitive.transform.get()
     let wp = offset
@@ -145,7 +154,7 @@ proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[flo
   if primitive.clipToBounds:
     ctx.surface.newPath()
     let cb = primitive.bounds
-    ctx.surface.rectangle(offset.x, offset.y, cb.size.x, cb.size.y )
+    ctx.surface.rectangle(0.0, 0.0, cb.size.x, cb.size.y )
     ctx.surface.clip()
 
   ctx.renderPrimitive(primitive)
@@ -165,9 +174,13 @@ proc measureText(text: string, fontSize: float, font: string, baseline: string):
 
 var frameTime: uint32 = 0
 
+proc hitTestPath(self: Element, pathProps: PathProps, point: midio_ui.Point): bool =
+  # TODO: Implement hit test for path
+  false
+
 
 proc startApp*(renderFunc: () -> Element): void =
-  let context = midio_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, renderFunc)
+  let context = midio_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
   let ctx = RenderContext(
     surface: surface.create()
   )
@@ -182,10 +195,12 @@ proc startApp*(renderFunc: () -> Element): void =
         context.dispatchPointerMove(float( event.x ), float(event.y))
       elif evt.kind == MouseButtonDown:
         let event = cast[MouseButtonEventPtr](addr(evt))
-        context.dispatchPointerDown(float(event.x), float(event.y))
+        # TODO: Implement pointer index
+        context.dispatchPointerDown(float(event.x), float(event.y), PointerIndex.Primary)
       elif evt.kind == MouseButtonUp:
         let event = cast[MouseButtonEventPtr](addr(evt))
-        context.dispatchPointerUp(float(event.x), float(event.y))
+        # TODO: Implement pointer index
+        context.dispatchPointerUp(float(event.x), float(event.y), PointerIndex.Primary)
       elif evt.kind == WindowEvent:
         var windowEvent = cast[WindowEventPtr](addr(evt))
         if windowEvent.event == WindowEvent_Resized:
