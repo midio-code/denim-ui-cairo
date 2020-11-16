@@ -134,23 +134,17 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
 proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[float]): void =
   ctx.surface.save()
   ctx.surface.translate(primitive.bounds.x, primitive.bounds.y)
-  if primitive.transform.isSome():
-    let transform = primitive.transform.get()
-    let wp = offset
-    let size = primitive.bounds.size
-    let xPos = wp.x + size.x / 2.0
-    let yPos = wp.y + size.y / 2.0
-    ctx.surface.translate(xPos, yPos)
-    ctx.surface.rotate(transform.rotation)
-    ctx.surface.translate(-xPos, -yPos)
-    ctx.surface.translate(
-      transform.translation.x,
-      transform.translation.y
-    )
-    ctx.surface.scale(
-      transform.scale.x,
-      transform.scale.y
-    )
+  for transform in  primitive.transform:
+    case transform.kind:
+      of Scaling:
+        ctx.surface.scale(
+          transform.scale.x,
+          transform.scale.y
+        )
+      of Translation:
+        ctx.surface.translate(transform.translation.x, transform.translation.y)
+      of Rotation:
+        ctx.surface.rotate(transform.rotation)
   if primitive.clipToBounds:
     ctx.surface.newPath()
     let cb = primitive.bounds
