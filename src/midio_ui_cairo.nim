@@ -69,7 +69,7 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   ctx.surface.selectFontFace(textInfo.font, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
   ctx.surface.setFontSize(textInfo.fontSize )
   let textColor = colorInfo.map(x => x.fill.get("red")).get("brown")
-  let c = parseColor(textColor).extractRgb()
+  let c = textColor.extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
   let textSize = ctx.measureText(textInfo.text)
   #ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
@@ -90,11 +90,11 @@ proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo:
   if colorInfo.isSome():
     let ci = colorInfo.get()
     if ci.fill.isSome():
-      let c = parseColor(ci.fill.get()).extractRGB()
+      let c = ci.fill.get().extractRGB()
       ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
       ctx.surface.fill()
     if ci.stroke.isSome():
-      let c = parseColor(ci.stroke.get()).extractRGB()
+      let c = ci.stroke.get().extractRGB()
       ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
       ctx.surface.stroke()
 
