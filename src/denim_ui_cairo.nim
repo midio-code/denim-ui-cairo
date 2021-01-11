@@ -1,5 +1,5 @@
 import math, sugar, options, colors
-import midio_ui
+import denim_ui
 import sdl2
 import cairo
 
@@ -68,7 +68,7 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   # ctx.fillText(textInfo.text, textInfo.pos.x, textInfo.pos.y)
   ctx.surface.selectFontFace(textInfo.font, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
   ctx.surface.setFontSize(textInfo.fontSize )
-  let textColor = colorInfo.map(x => x.fill.get("red")).get("brown")
+  let textColor = colorInfo.map(x => x.fill.get(colRed)).get(colBrown)
   let c = textColor.extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
   let textSize = ctx.measureText(textInfo.text)
@@ -168,13 +168,27 @@ proc measureText(text: string, fontSize: float, font: string, baseline: string):
 
 var frameTime: uint32 = 0
 
-proc hitTestPath(self: Element, pathProps: PathProps, point: midio_ui.Point): bool =
+proc hitTestPath(self: Element, pathProps: PathProps, point: denim_ui.Point): bool =
   # TODO: Implement hit test for path
   false
 
+# NOTE: Using this as a test to render a single frame
+proc bootstrap*(renderFunc: () -> Element, dt: float): Option[Primitive] =
+  echo "A"
+  # let context = denim_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
+  # echo "B"
+  # echo "C"
+  # echo "D"
+  # let primitive = denim_ui.render(context, dt)
+  # echo "E"
+  # echo "Primitive was: ", primitive.isSome
+  # return primitive
+  echo "heii"
+  result = none[Primitive]()
+  GC_ref(result)
 
 proc startApp*(renderFunc: () -> Element): void =
-  let context = midio_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
+  let context = denim_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
   let ctx = RenderContext(
     surface: surface.create()
   )
@@ -220,9 +234,7 @@ proc startApp*(renderFunc: () -> Element): void =
     let dt = float(now - frameTime)
     frameTime = now
 
-    let primitive = midio_ui.render(context, dt)
-
-    #echo "SURFACE: ", surface.w, ",", surface.h
+    let primitive = denim_ui.render(context, dt)
 
     let c = parseColor("#1b2a39").extractRgb()
     ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
