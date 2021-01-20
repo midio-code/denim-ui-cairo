@@ -103,11 +103,15 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
   of PrimitiveKind.Container:
     discard
   of PrimitiveKind.Path:
-    ctx.surface.newPath()
-    for segment in p.segments:
-      ctx.renderSegment(segment)
+    case p.pathInfo.kind:
+      of PathInfoKind.Segments:
+        ctx.surface.newPath()
+        for segment in p.pathInfo.segments:
+          ctx.renderSegment(segment)
+        ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
+      else:
+        echo("Path string data not supported in Cairo backend.")
     #ctx.surface.stroke()
-    ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Text:
     ctx.renderText(p.colorInfo, p.textInfo)
   of PrimitiveKind.Circle:
