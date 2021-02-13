@@ -12,7 +12,7 @@ const
   amask = uint32 0xff000000
 
 var
-  scale = 2.0
+  scale = 1.0
   w: int32 = 1000
   h: int32 = 1000
   surface = imageSurfaceCreate(FORMAT_ARGB32, w, h)
@@ -54,10 +54,14 @@ proc renderSegment(ctx: RenderContext, segment: PathSegment): void =
   of PathSegmentKind.Close:
     ctx.surface.closePath()
 
-proc measureText(ctx: RenderContext, text: string): tuple[width: float, height: float] =
+proc measureText(ctx: RenderContext, text: string, fontSize: float, font: string): tuple[width: float, height: float] =
   var
     text = text
     extents: TTextExtents
+
+  ctx.surface.selectFontFace(font, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
+  ctx.surface.setFontSize(fontSize)
+
   ctx.surface.textExtents(text, addr extents)
   (extents.width * scale, extents.height * scale)
 
@@ -71,7 +75,7 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   let textColor = colorInfo.map(x => x.fill.get(colRed)).get(colBrown)
   let c = textColor.extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
-  let textSize = ctx.measureText(textInfo.text)
+  let textSize = ctx.measureText(textInfo.text, textInfo.fontSize, textInfo.font)
   #ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
@@ -166,7 +170,7 @@ proc measureText(text: string, fontSize: float, font: string, baseline: string):
   let ctx = RenderContext(
     surface: surface.create()
   )
-  let res = ctx.measureText(text)
+  let res = ctx.measureText(text, fontSize, font)
   vec2(res.width, res.height)
 
 
