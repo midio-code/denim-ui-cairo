@@ -1,4 +1,4 @@
-import math, sugar, options, colors, strutils
+import math, sugar, options, colors, strutils, strformat
 import denim_ui
 import sdl2
 import cairo
@@ -208,6 +208,13 @@ proc startApp*(renderFunc: () -> Element): void =
     surface: surface.create()
   )
 
+  proc buttonIndex(index: int): PointerIndex =
+    case index:
+      of 1: PointerIndex.Primary
+      of 3: PointerIndex.Secondary
+      else:
+        raise newException(Exception, &"Mouse button {index} not supported")
+
   ctx.surface.scale(scale, scale)
   while true:
     while pollEvent(evt):
@@ -219,11 +226,11 @@ proc startApp*(renderFunc: () -> Element): void =
       elif evt.kind == MouseButtonDown:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        context.dispatchPointerDown(float(event.x), float(event.y), PointerIndex.Primary)
+        context.dispatchPointerDown(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == MouseButtonUp:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        context.dispatchPointerUp(float(event.x), float(event.y), PointerIndex.Primary)
+        context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == WindowEvent:
         var windowEvent = cast[WindowEventPtr](addr(evt))
         if windowEvent.event == WindowEvent_Resized:
