@@ -176,23 +176,28 @@ proc hitTestPath(self: Element, pathProps: PathProps, point: denim_ui.Point): bo
   # TODO: Implement hit test for path
   false
 
-# NOTE: Using this as a test to render a single frame
-proc bootstrap*(renderFunc: () -> Element, dt: float): Option[Primitive] =
-  echo "A"
-  # let context = denim_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
-  # echo "B"
-  # echo "C"
-  # echo "D"
-  # let primitive = denim_ui.render(context, dt)
-  # echo "E"
-  # echo "Primitive was: ", primitive.isSome
-  # return primitive
-  echo "heii"
-  result = none[Primitive]()
-  GC_ref(result)
-
 proc startApp*(renderFunc: () -> Element): void =
-  let context = denim_ui.init(vec2(float(w),float(h)), vec2(scale, scale), measureText, hitTestPath, renderFunc)
+  let context = denim_ui.init(
+    vec2(float(w), float(h)),
+    vec2(scale, scale),
+    measureText,
+    hitTestPath,
+    renderFunc,
+    NativeElements(
+      createTextInput: proc(props: (ElementProps, TextInputProps), children: seq[Element] = @[]): TextInput =
+        let textProps = props[1]
+        cast[TextInput](createText(
+          (
+            props[0],
+            TextProps(
+              text: textProps.text,
+              fontSize: textProps.fontSize,
+              color: textProps.color,
+            )
+          )
+        ))
+    )
+  )
   let ctx = RenderContext(
     surface: surface.create()
   )
