@@ -90,13 +90,13 @@ proc renderEllipse(ctx: RenderContext, info: EllipseInfo): void =
 
 proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo: Option[StrokeInfo]): void =
   if strokeInfo.isSome():
-    ctx.surface.setLineWidth(strokeInfo.get().width )
+    ctx.surface.setLineWidth(strokeInfo.get().width)
   if colorInfo.isSome():
     let ci = colorInfo.get()
     if ci.fill.isSome():
       let c = ci.fill.get().extractRGB()
       ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
-      ctx.surface.fill()
+      ctx.surface.fill_preserve()
     if ci.stroke.isSome():
       let c = ci.stroke.get().extractRGB()
       ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
@@ -125,12 +125,14 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
     renderEllipse(ctx, p.ellipseInfo)
     ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
   of PrimitiveKind.Rectangle:
-    # if p.strokeInfo.isSome():
-    #   ctx.lineWidth = p.strokeInfo.get().width
     if p.colorInfo.isSome():
       let b = p.rectangleInfo.bounds
       ctx.surface.rectangle(b.x, b.y, b.width, b.height )
       ctx.surface.fill()
+    if p.strokeInfo.isSome():
+      ctx.surface.setLineWidth(p.strokeInfo.get().width)
+      #ctx.lineWidth = p.strokeInfo.get().width
+      ctx.surface.stroke()
       # let ci = p.colorInfo.get()
       # if ci.fill.isSome():
       #   ctx.fillStyle = ci.fill.get()
@@ -240,7 +242,6 @@ proc startApp*(renderFunc: () -> Element): void =
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        echo "Pressed: ", keyCode, " name: ", $scanCodeName
         context.dispatchKeyDown(keyCode, toLowerAscii($scanCodeName))
       elif evt.kind == KEY_UP:
         let key = evt.key()
@@ -257,7 +258,7 @@ proc startApp*(renderFunc: () -> Element): void =
 
     let primitive = denim_ui.render(context, dt)
 
-    let c = parseColor("#1b2a39").extractRgb()
+    let c = parseColor("#ffffff").extractRgb()
     ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
     ctx.surface.rectangle(0, 0, float(w), float(h))
     ctx.surface.fill()
