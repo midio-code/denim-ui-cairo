@@ -1,4 +1,4 @@
-import math, sugar, options, colors
+import math, sugar, options, colors, strutils
 import denim_ui
 import sdl2
 import cairo
@@ -13,8 +13,8 @@ const
 
 var
   scale = 1.0
-  w: int32 = 1000
-  h: int32 = 1000
+  w: int32 = 1500
+  h: int32 = 1500
   surface = imageSurfaceCreate(FORMAT_ARGB32, w, h)
   window: WindowPtr = createWindow("Real time SDL/Cairo example", 100, 100, cint w, cint h, SDL_WINDOW_SHOWN or SDL_WINDOW_RESIZABLE)
   render: RendererPtr = createRenderer(window, -1, 0)
@@ -240,7 +240,15 @@ proc startApp*(renderFunc: () -> Element): void =
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        context.dispatchKeyDown(keyCode, $scanCodeName)
+        echo "Pressed: ", keyCode, " name: ", $scanCodeName
+        context.dispatchKeyDown(keyCode, toLowerAscii($scanCodeName))
+      elif evt.kind == KEY_UP:
+        let key = evt.key()
+        echo key.type
+        let keyCode = getKeyFromScancode(key.keysym.scancode)
+        let scanCodeName = getScanCodeName(key.keysym.scancode)
+        # TODO: keycode is not cross platform atm
+        context.dispatchKeyUp(keyCode, toLowerAscii($scanCodeName))
 
 
     let now = getTicks()
