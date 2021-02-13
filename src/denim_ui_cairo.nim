@@ -216,12 +216,14 @@ proc startApp*(renderFunc: () -> Element): void =
         raise newException(Exception, &"Mouse button {index} not supported")
 
   ctx.surface.scale(scale, scale)
+  var currentPointerPos = zero()
   while true:
     while pollEvent(evt):
       if evt.kind == QuitEvent:
         quit(0)
       elif evt.kind == MouseMotion:
         let event = cast[MouseMotionEventPtr](addr(evt))
+        currentPointerPos = vec2(float( event.x ), float(event.y))
         context.dispatchPointerMove(float( event.x ), float(event.y))
       elif evt.kind == MouseButtonDown:
         let event = cast[MouseButtonEventPtr](addr(evt))
@@ -231,6 +233,10 @@ proc startApp*(renderFunc: () -> Element): void =
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
         context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
+      elif evt.kind == MouseWheel:
+        let event = cast[MouseWheelEventPtr](addr(evt))
+        # TODO: Implement pointer index
+        context.dispatchWheel(currentPointerPos.x, currentPointerPos.y, float(event.x), float(event.y), 0.0, WheelDeltaUnit.Line)
       elif evt.kind == WindowEvent:
         var windowEvent = cast[WindowEventPtr](addr(evt))
         if windowEvent.event == WindowEvent_Resized:
