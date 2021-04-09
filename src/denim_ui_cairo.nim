@@ -65,7 +65,7 @@ proc measureText(ctx: RenderContext, text: string, fontSize: float, font: string
   ctx.surface.textExtents(text, addr extents)
   (extents.width * scale, extents.height * scale)
 
-proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: TextInfo): void =
+proc renderText(ctx: RenderContext, bounds: Bounds, colorInfo: Option[ColorInfo], textInfo: TextInfo): void =
   # ctx.fillStyle = colorInfo.map(x => x.fill.get("red")).get("brown")
   # ctx.textAlign = textInfo.alignment
   # ctx.textBaseline = textInfo.textBaseline
@@ -76,7 +76,7 @@ proc renderText(ctx: RenderContext, colorInfo: Option[ColorInfo], textInfo: Text
   let c = textColor.extractRgb()
   ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
   let textSize = ctx.measureText(textInfo.text, textInfo.fontSize, textInfo.font)
-  #ctx.surface.moveTo(textInfo.pos.x, textInfo.pos.y  + textSize.height  / 2.0)
+  ctx.surface.moveTo(bounds.pos.x, bounds.pos.y)#  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
 proc renderCircle(ctx: RenderContext, info: CircleInfo): void =
@@ -117,7 +117,7 @@ proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
         echo("Path string data not supported in Cairo backend.")
     #ctx.surface.stroke()
   of PrimitiveKind.Text:
-    ctx.renderText(p.colorInfo, p.textInfo)
+    ctx.renderText(p.bounds, p.colorInfo, p.textInfo)
   of PrimitiveKind.Circle:
     renderCircle(ctx, p.circleInfo)
     ctx.fillAndStroke(p.colorInfo, p.strokeInfo)
@@ -202,7 +202,8 @@ proc startApp*(renderFunc: () -> Element): void =
             )
           )
         ))
-    )
+    ),
+    proc(c: Cursor): void = discard
   )
   let ctx = RenderContext(
     surface: surface.create()
@@ -255,14 +256,14 @@ proc startApp*(renderFunc: () -> Element): void =
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        context.dispatchKeyDown(keyCode, toLowerAscii($scanCodeName))
+        context.dispatchKeyDown(keyCode, toLowerAscii($scanCodeName), @[])
       elif evt.kind == KEY_UP:
         let key = evt.key()
         echo key.type
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        context.dispatchKeyUp(keyCode, toLowerAscii($scanCodeName))
+        context.dispatchKeyUp(keyCode, toLowerAscii($scanCodeName), @[])
 
 
     let now = getTicks()
