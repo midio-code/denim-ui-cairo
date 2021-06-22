@@ -2,7 +2,6 @@ import math, sugar, options, colors, strutils, strformat
 import denim_ui
 import sdl2
 import cairo
-import ui
 
 discard sdl2.init(INIT_EVERYTHING)
 
@@ -234,18 +233,18 @@ proc startApp*(renderFunc: () -> Element): void =
     while pollEvent(evt):
       if evt.kind == QuitEvent:
         quit(0)
-      # elif evt.kind == MouseMotion:
-      #   let event = cast[MouseMotionEventPtr](addr(evt))
-      #   currentPointerPos = vec2(float(event.x), float(event.y))
-      #   context.dispatchPointerMove(float(event.x), float(event.y))
+      elif evt.kind == MouseMotion:
+        let event = cast[MouseMotionEventPtr](addr(evt))
+        currentPointerPos = vec2(float(event.x), float(event.y))
+        context.dispatchPointerMove(float(event.x), float(event.y))
       elif evt.kind == MouseButtonDown:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        #context.dispatchPointerDown(float(event.x), float(event.y), buttonIndex(int(event.button)))
+        context.dispatchPointerDown(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == MouseButtonUp:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        #context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
+        context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == MouseWheel:
         let event = cast[MouseWheelEventPtr](addr(evt))
         # TODO: Implement pointer index
@@ -296,7 +295,7 @@ proc startApp*(renderFunc: () -> Element): void =
     ctx.surface.rectangle(0, 0, float(w), float(h))
     ctx.surface.fill()
     if primitive.isSome():
-      ctx.renderPrimitives(primitive.get(), vec2(0.0))
+      ctx.renderPrimitives(primitive.get(), vec2(500.0))
 
     var dataPtr = surface.getData()
     mainSurface.pixels = dataPtr
