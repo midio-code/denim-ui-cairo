@@ -2,6 +2,7 @@ import math, sugar, options, colors, strutils, strformat
 import denim_ui
 import sdl2
 import cairo
+import ui
 
 discard sdl2.init(INIT_EVERYTHING)
 
@@ -66,16 +67,17 @@ proc measureText(ctx: RenderContext, text: string, fontSize: float, font: string
   (extents.width * scale, extents.height * scale)
 
 proc renderText(ctx: RenderContext, bounds: Bounds, colorInfo: Option[ColorInfo], textInfo: TextInfo): void =
-  # ctx.fillStyle = colorInfo.map(x => x.fill.get("red")).get("brown")
-  # ctx.textAlign = textInfo.alignment
-  # ctx.textBaseline = textInfo.textBaseline
-  # ctx.fillText(textInfo.text, textInfo.pos.x, textInfo.pos.y)
-  ctx.surface.selectFontFace(textInfo.font, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
+  ctx.surface.selectFontFace(textInfo.fontFamily, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
   ctx.surface.setFontSize(textInfo.fontSize )
   let textColor = colorInfo.map(x => x.fill.get(colRed)).get(colBrown)
-  let c = textColor.extractRgb()
-  ctx.surface.setSourceRGBA(float(c.r)/255.0, float(c.g)/255.0, float(c.b)/255.0, 1.0)
-  let textSize = ctx.measureText(textInfo.text, textInfo.fontSize, textInfo.font)
+  assert(textColor.kind == ColorStyleKind.Solid)
+  ctx.surface.setSourceRGBA(
+    float(textColor.color.r)/255.0,
+    float(textColor.color.g)/255.0,
+    float(textColor.color.b)/255.0,
+    float(textColor.color.a)/255.0
+  )
+  let textSize = ctx.measureText($textInfo.text, textInfo.fontSize, $textInfo.fontFamily)
   ctx.surface.moveTo(bounds.pos.x, bounds.pos.y)#  + textSize.height  / 2.0)
   ctx.surface.showText(textInfo.text)
 
@@ -94,17 +96,22 @@ proc fillAndStroke(ctx: RenderContext, colorInfo: Option[ColorInfo], strokeInfo:
   if colorInfo.isSome():
     let ci = colorInfo.get()
     if ci.fill.isSome():
-      let c = ci.fill.get().extractRGB()
-      ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
-      ctx.surface.fill_preserve()
+      if ci.fill.get.kind == ColorStyleKind.Solid:
+        let c = ci.fill.get().color
+        ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
+        ctx.surface.fill_preserve()
     if ci.stroke.isSome():
-      let c = ci.stroke.get().extractRGB()
-      ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
-      ctx.surface.stroke()
+      if ci.stroke.get.kind == ColorStyleKind.Solid:
+        let c = ci.stroke.get().color
+        ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
+        ctx.surface.stroke()
 
 proc renderPrimitive(ctx: RenderContext, p: Primitive): void =
+  echo "rendering prim: ", p.kind
   case p.kind
   of PrimitiveKind.Container:
+    discard
+  of PrimitiveKind.Image:
     discard
   of PrimitiveKind.Path:
     case p.pathInfo.kind:
@@ -168,11 +175,11 @@ proc renderPrimitives(ctx: RenderContext, primitive: Primitive, offset: Vec2[flo
 
 var evt = sdl2.defaultEvent
 
-proc measureText(text: string, fontSize: float, font: string, baseline: string): Vec2[float] =
+proc measureTextImpl(text: string, fontSize: float, fontFamily: string, fontWeight: int, baseline: string): Vec2[float] =
   let ctx = RenderContext(
     surface: surface.create()
   )
-  let res = ctx.measureText(text, fontSize, font)
+  let res = ctx.measureText(text, fontSize, fontFamily)
   vec2(res.width, res.height)
 
 
@@ -182,12 +189,16 @@ proc hitTestPath(self: Element, pathProps: PathProps, point: denim_ui.Point): bo
   # TODO: Implement hit test for path
   false
 
+proc requestRerender() =
+  discard
+
 proc startApp*(renderFunc: () -> Element): void =
   let context = denim_ui.init(
     vec2(float(w), float(h)),
     vec2(scale, scale),
-    measureText,
+    measureTextImpl,
     hitTestPath,
+    requestRerender,
     renderFunc,
     NativeElements(
       createTextInput: proc(props: (ElementProps, TextInputProps), children: seq[Element] = @[]): TextInput =
@@ -214,7 +225,8 @@ proc startApp*(renderFunc: () -> Element): void =
       of 1: PointerIndex.Primary
       of 3: PointerIndex.Secondary
       else:
-        raise newException(Exception, &"Mouse button {index} not supported")
+        echo &"Mouse button {index} not supported"
+        PointerIndex.Primary
 
   ctx.surface.scale(scale, scale)
   var currentPointerPos = zero()
@@ -222,18 +234,18 @@ proc startApp*(renderFunc: () -> Element): void =
     while pollEvent(evt):
       if evt.kind == QuitEvent:
         quit(0)
-      elif evt.kind == MouseMotion:
-        let event = cast[MouseMotionEventPtr](addr(evt))
-        currentPointerPos = vec2(float( event.x ), float(event.y))
-        context.dispatchPointerMove(float( event.x ), float(event.y))
+      # elif evt.kind == MouseMotion:
+      #   let event = cast[MouseMotionEventPtr](addr(evt))
+      #   currentPointerPos = vec2(float(event.x), float(event.y))
+      #   context.dispatchPointerMove(float(event.x), float(event.y))
       elif evt.kind == MouseButtonDown:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        context.dispatchPointerDown(float(event.x), float(event.y), buttonIndex(int(event.button)))
+        #context.dispatchPointerDown(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == MouseButtonUp:
         let event = cast[MouseButtonEventPtr](addr(evt))
         # TODO: Implement pointer index
-        context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
+        #context.dispatchPointerUp(float(event.x), float(event.y), buttonIndex(int(event.button)))
       elif evt.kind == MouseWheel:
         let event = cast[MouseWheelEventPtr](addr(evt))
         # TODO: Implement pointer index
@@ -256,24 +268,31 @@ proc startApp*(renderFunc: () -> Element): void =
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        context.dispatchKeyDown(keyCode, toLowerAscii($scanCodeName), @[])
+        context.dispatchKeyDown(toLowerAscii($scanCodeName), @[])
       elif evt.kind == KEY_UP:
         let key = evt.key()
         echo key.type
         let keyCode = getKeyFromScancode(key.keysym.scancode)
         let scanCodeName = getScanCodeName(key.keysym.scancode)
         # TODO: keycode is not cross platform atm
-        context.dispatchKeyUp(keyCode, toLowerAscii($scanCodeName), @[])
+        context.dispatchKeyUp(toLowerAscii($scanCodeName), @[])
 
 
     let now = getTicks()
     let dt = float(now - frameTime)
     frameTime = now
 
-    let primitive = denim_ui.render(context, dt)
+    echo "Updating: ", dt
+    context.update(dt)
+    let primitive = denim_ui.render(context)
+    echo "Prim: ", primitive.get.bounds
 
-    let c = parseColor("#ffffff").extractRgb()
-    ctx.surface.setSourceRGB(float(c.b)/255.0, float(c.g)/255.0, float(c.r)/255.0)
+    let c = denim_ui.parseColor("#ffffff")
+    ctx.surface.setSourceRGB(
+      float(c.b)/255.0,
+      float(c.g)/255.0,
+      float(c.r)/255.0
+    )
     ctx.surface.rectangle(0, 0, float(w), float(h))
     ctx.surface.fill()
     if primitive.isSome():
